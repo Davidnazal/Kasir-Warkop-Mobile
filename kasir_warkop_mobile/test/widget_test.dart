@@ -23,6 +23,71 @@ void main() {
     expect(CurrencyFormatter.format(0), 'Rp 0');
   });
 
+  test(
+    'ThousandsSeparatorInputFormatter formats digits with dot separator',
+    () {
+      final formatter = ThousandsSeparatorInputFormatter();
+
+      final formatted5k = formatter.formatEditUpdate(
+        TextEditingValue.empty,
+        const TextEditingValue(
+          text: '5000',
+          selection: TextSelection.collapsed(offset: 4),
+        ),
+      );
+      expect(formatted5k.text, '5.000');
+
+      final formatted125k = formatter.formatEditUpdate(
+        formatted5k,
+        const TextEditingValue(
+          text: '125000',
+          selection: TextSelection.collapsed(offset: 6),
+        ),
+      );
+      expect(formatted125k.text, '125.000');
+
+      final cleared = formatter.formatEditUpdate(
+        formatted125k,
+        const TextEditingValue(
+          text: '',
+          selection: TextSelection.collapsed(offset: 0),
+        ),
+      );
+      expect(cleared.text, '');
+    },
+  );
+
+  test('ThousandsSeparatorInputFormatter formats digits with dot separator', () {
+    final formatter = ThousandsSeparatorInputFormatter();
+
+    final formatted5k = formatter.formatEditUpdate(
+      TextEditingValue.empty,
+      const TextEditingValue(
+        text: '5000',
+        selection: TextSelection.collapsed(offset: 4),
+      ),
+    );
+    expect(formatted5k.text, '5.000');
+
+    final formatted125k = formatter.formatEditUpdate(
+      formatted5k,
+      const TextEditingValue(
+        text: '125000',
+        selection: TextSelection.collapsed(offset: 6),
+      ),
+    );
+    expect(formatted125k.text, '125.000');
+
+    final cleared = formatter.formatEditUpdate(
+      formatted125k,
+      const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      ),
+    );
+    expect(cleared.text, '');
+  });
+
   test('ProductModel resolves matching local asset paths', () {
     const coffee = ProductModel(
       id: 1,
@@ -187,6 +252,16 @@ void main() {
       await tester.tap(find.text('Bayar Sekarang'));
       await tester.pumpAndSettle();
       expect(find.text('Konfirmasi & Proses Transaksi'), findsOneWidget);
+
+      // Kosong tidak bisa lanjut bayar
+      await tester.tap(find.text('Konfirmasi & Proses Transaksi'));
+      await tester.pumpAndSettle();
+      expect(find.text('Konfirmasi & Proses Transaksi'), findsOneWidget);
+
+      // Masukkan nominal tanpa titik -> otomatis terformat 18.000
+      await tester.enterText(find.byType(TextField), '18000');
+      await tester.pumpAndSettle();
+      expect(find.text('18.000'), findsOneWidget);
 
       await tester.tap(find.text('Konfirmasi & Proses Transaksi'));
       await tester.pumpAndSettle();

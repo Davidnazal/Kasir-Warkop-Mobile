@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -68,9 +69,13 @@ class _CheckoutPaymentModalState extends State<CheckoutPaymentModal> {
   Widget build(BuildContext context) {
     final pos = context.watch<PosProvider>();
     final total = pos.subtotal;
-    final payAmount =
-        int.tryParse(_payController.text.replaceAll('.', '')) ?? total;
-    final changeAmount = payAmount - total;
+    final rawDigits = _payController.text.replaceAll('.', '');
+    final parsedPay = rawDigits.isEmpty ? null : int.tryParse(rawDigits);
+    final isCashValid = parsedPay != null && parsedPay >= total;
+    final changeAmount = (parsedPay ?? 0) - total;
+    final canSubmit =
+        !pos.isSubmitting &&
+        (pos.paymentMethod == PaymentMethod.qris || isCashValid);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -108,9 +113,9 @@ class _CheckoutPaymentModalState extends State<CheckoutPaymentModal> {
             const _QrisPaymentSection(),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: pos.isSubmitting
-                ? null
-                : () => _submitTransaction(pos, payAmount),
+            onPressed: canSubmit
+                ? () => _submitTransaction(pos, parsedPay ?? total)
+                : null,
             child: pos.isSubmitting
                 ? const SizedBox(
                     height: 20,
@@ -179,6 +184,10 @@ class _CashPaymentSection extends StatelessWidget {
         TextField(
           controller: controller,
           keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            ThousandsSeparatorInputFormatter(),
+          ],
           decoration: const InputDecoration(
             labelText: 'Uang Diterima (Rp)',
             hintText: 'Masukkan nominal uang tunai',
